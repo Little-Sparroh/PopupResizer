@@ -3,9 +3,9 @@ schemaVersion = "0.0.1"
 
 [package]
 namespace = "Sparroh"
-name = "PopupReducer"
-description = "Reduces the size of reward popups by 50%."
-websiteUrl = "https://github.com/Little-Sparroh/PopupReducer"
+name = "PopupResizer"
+description = "Reduces the size of item upgrade popups and repositions them for a cleaner HUD."
+websiteUrl = "https://github.com/Little-Sparroh/PopupResizer"
 containsNsfwContent = false
 
 [package.dependencies]
@@ -17,8 +17,8 @@ readme = "README.md"
 outdir = "build"
 
 [[build.copy]]
-source = "bin/Release/net48/PopupReducer.dll"
-target = "BepInEx/plugins/PopupReducer.dll"
+source = "bin/Release/net48/PopupResizer.dll"
+target = "BepInEx/plugins/PopupResizer.dll"
 
 [[build.copy]]
 source = "CHANGELOG.md"
@@ -34,5 +34,3 @@ communities = [ "mycopunk" ]
 
 [publish.categories]
 mycopunk = [ "client" ]
-
-

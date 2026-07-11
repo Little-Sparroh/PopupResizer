@@ -1,118 +1,142 @@
-﻿using BepInEx;
+﻿using System;
+using System.IO;
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
-using System.Reflection;
-using System;
-using System.Collections;
 
 [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-public class SmallItemPopups : BaseUnityPlugin
+[MycoMod(null, ModFlags.IsClientSide)]
+public class SparrohPlugin : BaseUnityPlugin
 {
-    public const string PluginGUID = "sparroh.popupreducer";
-    public const string PluginName = "PopupReducer";
-    public const string PluginVersion = "1.0.0";
+    public const string PluginGUID = "sparroh.popupresizer";
+    public const string PluginName = "PopupResizer";
+    public const string PluginVersion = "1.0.1";
 
-    private GameManager gameManager;
+    internal static new ManualLogSource Logger;
+    internal static SparrohPlugin Instance { get; set; }
+
+    internal static ConfigEntry<bool> resizePopups;
+
+    private Harmony harmony;
+    private FileSystemWatcher configWatcher;
+    private volatile bool configReloadPending;
+    private float lastReloadTime;
 
     private void Awake()
     {
+        Instance = this;
+        Logger = base.Logger;
+
+        resizePopups = Config.Bind(
+            "General",
+            "Resize Item Popups",
+            true,
+            "If true, reduces the size of item upgrade popups and repositions them."
+        );
+
+        Config.ConfigReloaded += OnConfigReloaded;
+        SetupConfigWatcher();
+
+        try
+        {
+            harmony = new Harmony(PluginGUID);
+            harmony.PatchAll(typeof(ResizePopupPatches));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to apply Harmony patches: {ex.Message}");
+        }
+
         Logger.LogInfo($"{PluginName} loaded successfully.");
     }
 
     private void Update()
     {
-        if (gameManager == null)
+        if (!configReloadPending)
+            return;
+
+        // Debounce: Windows often fires Changed twice; also avoid reloading mid-write.
+        if (Time.unscaledTime - lastReloadTime < 0.25f)
+            return;
+
+        configReloadPending = false;
+        lastReloadTime = Time.unscaledTime;
+
+        try
         {
-            gameManager = GameManager.Instance;
-            if (gameManager != null)
-            {
-                if (gameManager.gameObject.GetComponent<PopupMonitor>() == null)
-                {
-                    gameManager.gameObject.AddComponent<PopupMonitor>();
-                }
-            }
+            Config.Reload();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Failed to reload config: {ex.Message}");
         }
     }
 
-    private class SmallPopup : MonoBehaviour
+    private void OnConfigReloaded(object sender, EventArgs e)
     {
-        private Vector2 originalPosition;
-        private bool hasStoredOriginalPos = false;
+        Logger.LogInfo($"Config reloaded. Resize Item Popups = {resizePopups.Value}");
+    }
 
-        void Start()
+    private void SetupConfigWatcher()
+    {
+        try
         {
-            RectTransform rt = GetComponent<RectTransform>();
-            if (rt != null)
+            string configPath = Config.ConfigFilePath;
+            string directory = Path.GetDirectoryName(configPath);
+            string fileName = Path.GetFileName(configPath);
+
+            if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName))
             {
-                originalPosition = rt.anchoredPosition;
-                hasStoredOriginalPos = true;
+                Logger.LogWarning("Could not set up config file watcher: invalid config path.");
+                return;
             }
+
+            configWatcher = new FileSystemWatcher(directory, fileName)
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                EnableRaisingEvents = true
+            };
+
+            configWatcher.Changed += OnConfigFileChanged;
+            configWatcher.Created += OnConfigFileChanged;
+            configWatcher.Renamed += OnConfigFileChanged;
+
+            Logger.LogInfo($"Watching config file for changes: {configPath}");
         }
-
-        void Update()
+        catch (Exception ex)
         {
-            transform.localScale = new Vector3(0.5f, 0.5f, 1.0f);
-
-            RectTransform rt = GetComponent<RectTransform>();
-            if (rt != null && hasStoredOriginalPos)
-            {
-                rt.anchoredPosition = new Vector2(originalPosition.x + 200f, originalPosition.y);
-            }
+            Logger.LogWarning($"Could not set up config file watcher: {ex.Message}");
         }
     }
 
-    private class PopupMonitor : MonoBehaviour
+    private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
     {
-        private FieldInfo upgradePopupsField;
-        private IList upgradePopupsList;
-        private int previousCount = 0;
+        configReloadPending = true;
+    }
 
-        void Start()
+    private void OnDestroy()
+    {
+        Config.ConfigReloaded -= OnConfigReloaded;
+
+        if (configWatcher != null)
         {
-
-            upgradePopupsField = AccessTools.Field(typeof(GameManager), "upgradePopups");
-            if (upgradePopupsField == null)
-            {
-                return;
-            }
-
-            upgradePopupsList = upgradePopupsField.GetValue(GameManager.Instance) as IList;
-            if (upgradePopupsList == null)
-            {
-                return;
-            }
-
-            previousCount = upgradePopupsList.Count;
-
-            StartCoroutine(MonitorListCoroutine());
+            configWatcher.EnableRaisingEvents = false;
+            configWatcher.Changed -= OnConfigFileChanged;
+            configWatcher.Created -= OnConfigFileChanged;
+            configWatcher.Renamed -= OnConfigFileChanged;
+            configWatcher.Dispose();
+            configWatcher = null;
         }
 
-        private IEnumerator MonitorListCoroutine()
+        try
         {
-            while (true)
-            {
-                if (upgradePopupsList != null)
-                {
-                    int currentCount = upgradePopupsList.Count;
-                    if (currentCount > previousCount)
-                    {
-
-                        var newPopup = upgradePopupsList[currentCount - 1];
-                        if (newPopup != null)
-                        {
-                            var go = (newPopup as MonoBehaviour)?.gameObject;
-                            if (go != null && go.GetComponent<SmallPopup>() == null)
-                            {
-                                go.AddComponent<SmallPopup>();
-                            }
-                        }
-
-                        previousCount = currentCount;
-                    }
-                }
-
-                yield return new WaitForSeconds(0.1f);
-            }
+            harmony?.UnpatchSelf();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error unpatching Harmony: {ex.Message}");
         }
     }
 }
