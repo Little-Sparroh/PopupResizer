@@ -12,7 +12,7 @@ public class SparrohPlugin : BaseUnityPlugin
 {
     public const string PluginGUID = "sparroh.popupresizer";
     public const string PluginName = "PopupResizer";
-    public const string PluginVersion = "1.0.1";
+    public const string PluginVersion = "1.1.0";
 
     internal static new ManualLogSource Logger;
     internal static SparrohPlugin Instance { get; set; }
