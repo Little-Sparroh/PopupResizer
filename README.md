@@ -1,4 +1,4 @@
-# Popup Resizer
+# Popup Reducer
 
 A BepInEx mod for MycoPunk that shrinks item upgrade popups and shifts them for a cleaner HUD.
 
@@ -36,7 +36,7 @@ dotnet build --configuration Release
 2. The mod will be automatically installed to the correct directory
 
 **Manual Installation**:
-1. Place the built `PopupResizer.dll` in your `<MycoPunk Directory>/BepInEx/plugins/` folder
+1. Place the built `PopupReducer.dll` in your `<MycoPunk Directory>/BepInEx/plugins/` folder
 
 ### Executing program
 
@@ -44,7 +44,7 @@ The mod loads automatically through BepInEx when the game starts. Check the BepI
 
 ## Configuration
 
-Access mod settings through the BepInEx configuration file at `<MycoPunk Directory>/BepInEx/config/sparroh.popupresizer.cfg`:
+Access mod settings through the BepInEx configuration file at `<MycoPunk Directory>/BepInEx/config/sparroh.popupreducer.cfg`:
 
 - **Resize Item Popups** (`true` by default) — enables smaller, repositioned upgrade popups
 

@@ -3,9 +3,9 @@ schemaVersion = "0.0.1"
 
 [package]
 namespace = "Sparroh"
-name = "PopupResizer"
+name = "PopupReducer"
 description = "Reduces the size of item upgrade popups and repositions them for a cleaner HUD."
-websiteUrl = "https://github.com/Little-Sparroh/PopupResizer"
+websiteUrl = "https://github.com/Little-Sparroh/PopupReducer"
 containsNsfwContent = false
 
 [package.dependencies]
@@ -17,8 +17,8 @@ readme = "README.md"
 outdir = "build"
 
 [[build.copy]]
-source = "bin/Release/net48/PopupResizer.dll"
-target = "BepInEx/plugins/PopupResizer.dll"
+source = "bin/Release/net48/PopupReducer.dll"
+target = "BepInEx/plugins/PopupReducer.dll"
 
 [[build.copy]]
 source = "CHANGELOG.md"

@@ -10,8 +10,8 @@ using UnityEngine;
 [MycoMod(null, ModFlags.IsClientSide)]
 public class SparrohPlugin : BaseUnityPlugin
 {
-    public const string PluginGUID = "sparroh.popupresizer";
-    public const string PluginName = "PopupResizer";
+    public const string PluginGUID = "sparroh.popupreducer";
+    public const string PluginName = "PopupReducer";
     public const string PluginVersion = "1.1.0";
 
     internal static new ManualLogSource Logger;
